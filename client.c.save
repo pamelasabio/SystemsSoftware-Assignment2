@@ -22,7 +22,7 @@ int SID;
 struct sockaddr_in server;
 char clientMessage[512];
 char serverMessage[512];
-char file_dest[512];
+char file_dest[128];
 char file_path[150];
 
 int PORT;
@@ -30,9 +30,9 @@ char IP[16];
 
 int main(int argc, char *argv[] ){
 	if(argc < 5){
-		printf("\nPlease pass run the client program in the following format:\n");
+		printf("Please pass run the client program in the following format:\n");
 		printf("./client IP PORT FILE_SOURCE FILE_DESTINATION\n");
-		printf("e.g. ./client 127.0.0.1 1234 upload.html root\n");
+
 		exit(EXIT_FAILURE);
 	}
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[] ){
 	strcpy(file_dest, argv[4]);
 	int isValidDest = 0;
 	if((strcmp(file_dest, "root") == 0) || (strcmp(file_dest, "sales") == 0) || (strcmp(file_dest, "promotions") == 0) || (strcmp(file_dest, "offers") == 0) || (strcmp(file_dest, "marketing") == 0)){
-		// Okay to continue
+		// Okay to continue 
 		isValidDest = 1;
 	}
 	// Check if destination is valid

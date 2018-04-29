@@ -17,35 +17,39 @@
 #include <pthread.h>
 
 #include "sendMessages.h"
+#include "logMessage.h"
 
 #define USER_DATA "users.txt"
 
+int authenticateUser(char *username, char *password, pthread_mutex_t *authenticationLock, pthread_mutex_t *logsLock);
 char *user;
 
 //Function for getting username and password from client to send to server
-void clientAuthenticate(char *clientMessage, *serverMessage){
+void clientAuthenticate(int SID, char *clientMessage, char *serverMessage){
 	char username[20];
 	char *password;
-	printf("Authenticating user:\n");
+	printf("Please login for authentication\n");
+	printf("Please enter your username:\n");
 	printf("Username :");
 	fgets(username,20,stdin);
 	username[strcspn(username, "\n")] = 0;
+	printf("Please enter your password\n");
 	password = getpass("Password: ");
 	if(password == NULL){
-		perror("Invalid Password.");
+		perror("Your password is not valid.\n");
 		exit(0);
 	}
 
-	// Send authentication message to the server Format: AUTH:login:password
+	// Send authentication message to the server with the format: USER:login:password
 	memset(clientMessage, 0, strlen(clientMessage));
-	strcpy(clientMessage, "AUTH:");
+	strcpy(clientMessage, "USER:");
 	strcat(clientMessage, username);
 	strcat(clientMessage, ":");
 	strcat(clientMessage, password);
-	strcat(clientMessage, ":testing:");
-	if(clientToServerMessage() == 0){
+	strcat(clientMessage, ":a");
+	if(clientToServerMessage(SID,clientMessage,serverMessage) == 0){
 		// Failed
-		perror("Failed to authenticate");
+		perror("Authentication failed");
 		exit(0);
 
 	}
@@ -56,47 +60,47 @@ void clientAuthenticate(char *clientMessage, *serverMessage){
 		printf("Authentication failed.\n");
 		exit(0);
 	}else{
-		printf("Authenticated.\n");
+		printf("User successfully authenticated.\n");
 	}
 }
 
 //Function for receiving client authentication message
-int serverAuthenticate(char *clientMessage){
+int serverAuthenticate(char *clientMessage, pthread_mutex_t *authenticationLock, pthread_mutex_t *logsLock){
     char *token;
     char username[64];
     char password[64];
     char message[512];
     strcpy(message, clientMessage);
-    
+
     token = strtok(message, ":");
-    if(strcmp(token, "AUTH") == 0){
+    if(strcmp(token, "USER") == 0){
         token = strtok(NULL, ":");
         strcpy(username, token);
         token = strtok(NULL, ":");
         strcpy(password,token);
         //check whether the user credentials are valid
-        int validUser = authenticateUser(username, password);
+        int validUser = authenticateUser(username, password, authenticationLock, logsLock);
         if(validUser == 0){
             // Valid cridentials
-            printf("Credentials valid.");
+            printf("*****User Authenticated*****.");
             return 0;
         }else{
             // Authentication failed
-            printf("Cridentials invalid.");
+            printf("*****Cridentials invalid*****.");
             return -1;
         }
     }
-    
+
     printf("Done\n");
     return 1;
 
 }
 
 //Function for authenticating the user by checking if the username and password exists in the users.txt file
-int authenticateUser(char *username, char *password){
+int authenticateUser(char *username, char *password, pthread_mutex_t *authenticationLock, pthread_mutex_t *logsLock){
     printf("Authenticating user: %s\n", username);
     user = username;
-    pthread_mutex_lock(&authenticationLock);
+    pthread_mutex_lock(authenticationLock);
     FILE *file;
     file = fopen(USER_DATA,"r");
     char line[512];
@@ -109,7 +113,7 @@ int authenticateUser(char *username, char *password){
         }else{
             line[i] = ':';
             line[i+1] = '\0';
-            
+
             i = 0;
             char *token;
             char fileLogin[64];
@@ -120,34 +124,34 @@ int authenticateUser(char *username, char *password){
             strcpy(filePassword, token);
             
             // Check if username exists
-            if(strcmp(login, fileLogin) == 0){
+            if(strcmp(username, fileLogin) == 0){
                 // User found, check password
                 if(strcmp(password,filePassword) == 0){
                     // Password is valid
-                    logInfo(login,"Authenticated");
+                    logMessage(username,"Authenticated", logsLock);
                     fclose(file);
-                    pthread_mutex_unlock(&authenticationLock);
+                    pthread_mutex_unlock(authenticationLock);
                     return 0;
                 }else{
                     // Invalid password
-                    logInfo(login,"Invalid Password");
+                    logMessage(username,"Invalid Password", logsLock);
                     fclose(file);
-                    pthread_mutex_unlock(&authenticationLock);
+                    pthread_mutex_unlock(authenticationLock);
                     return -1;
                 }
             }
         }
         ch = getc(file);
     }
-    logInfo(login,"Invalid Login");
+    logMessage(username,"Invalid Login", logsLock);
     fclose(file);
-    pthread_mutex_unlock(&authenticationLock);
+    pthread_mutex_unlock(authenticationLock);
     return -1;
 
 }
 
 char *getUserName(){
-    return *user;
+    return user;
 }
 
 

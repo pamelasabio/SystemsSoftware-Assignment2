@@ -15,8 +15,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-int clientToServerMessage(int SID, *clientMessage, *serverMessage){
-	if(send(SID, clientMessage, strlen(clientMessage), 0) < 0){
+int clientToServerMessage(int SID, char *clientMessage, char *serverMessage){
+	if(send(SID, clientMessage, strlen(clientMessage) + 1, 0) < 0){
 		// Send failed.
 		printf("Connection to server failed..\n");
 		return 0;
